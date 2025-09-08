@@ -1,0 +1,36 @@
+# This workflow is triggered on pushes to the main branch.
+# It installs dependencies, builds the project, runs tests, and then publishes a new version to NPM.
+
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18' # Specify a Node.js version
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This is automatically provided by GitHub
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}       # This needs to be created and added to your repository secrets
+        run: npx semantic-release

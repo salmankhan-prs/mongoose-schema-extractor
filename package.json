@@ -1,0 +1,56 @@
+{
+  "name": "mongoose-schema-extractor",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "mongoose",
+    "schema",
+    "extractor",
+    "typescript",
+    "graphql",
+    "documentation",
+    "intellisense"
+  ],
+  "author": "",
+  "license": "MIT",
+  "description": "Extract and format Mongoose schemas for docs, TypeScript, GraphQL, and LLM prompts.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_USERNAME/mongoose-schema-extractor.git"
+  },
+  "homepage": "https://github.com/YOUR_USERNAME/mongoose-schema-extractor#readme",
+  "bugs": {
+    "url": "https://github.com/YOUR_USERNAME/mongoose-schema-extractor/issues"
+  },
+  "peerDependencies": {
+    "mongoose": "^8.18.0"
+  },
+  "exports": {
+    ".": {
+      "require": "./dist/index.js",
+      "default": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "bin": {
+    "mongoose-extract": "bin/mongoose-extract"
+  },
+  "devDependencies": {
+    "@semantic-release/commit-analyzer": "^13.0.1",
+    "@semantic-release/github": "^11.0.5",
+    "@semantic-release/npm": "^12.0.2",
+    "@semantic-release/release-notes-generator": "^14.1.0",
+    "semantic-release": "^24.2.7",
+    "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "ts-node": "^10.9.2"
+  }
+}
