@@ -101,6 +101,39 @@ extractSchemas([UserModel, PostModel]);      // Array of models
 extractSchemas({ User: UserModel });         // Object of models
 ```
 
+## 🛠️ **TypeScript Support**
+
+Full TypeScript support with automatic path alias resolution:
+
+```javascript
+// mongoose-extract.config.js
+module.exports = {
+  bootstrap: async () => {
+    const mongoose = require('mongoose');
+    
+    // TypeScript models with path aliases (@/*, etc.)
+    require('./src/models/user.model.ts');
+    require('./src/models/post.model.ts');
+    
+    return mongoose;
+  },
+  // ... rest of config
+};
+```
+
+**Auto-detection features:**
+- ✅ Automatically registers `ts-node` for TypeScript compilation
+- ✅ Detects `tsconfig.json` and registers `tsconfig-paths` for path mappings
+- ✅ Supports path aliases like `@/models/*`, `~/utils/*`, etc.
+- ✅ No manual setup required in most cases
+
+**Manual setup** (if auto-detection fails):
+```javascript
+// In your config bootstrap function
+require('ts-node/register');
+require('tsconfig-paths/register');  // For path aliases
+```
+
 ---
 
 ## 🎆 **AI Agent Integration Examples**

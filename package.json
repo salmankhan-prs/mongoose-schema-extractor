@@ -51,6 +51,7 @@
   },
   "dependencies": {
     "commander": "^12.1.0",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0"
   }
 }

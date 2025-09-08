@@ -22,6 +22,7 @@ Error running bootstrap function. Make sure:
 1. All model files exist and are valid
 2. The bootstrap function returns a mongoose instance
 3. No syntax errors in your models
+4. For TypeScript with path aliases: Install tsconfig-paths and add require('tsconfig-paths/register')
 `
 };
 
@@ -61,6 +62,23 @@ export async function loadConfig(): Promise<Config> {
     // Support .ts via ts-node/register if available
     try {
       require('ts-node/register');
+      
+      try {
+        const tsconfigPath = path.resolve(process.cwd(), 'tsconfig.json');
+        const exists = await fs.access(tsconfigPath).then(() => true).catch(() => false);
+        if (exists) {
+          const tsconfig = JSON.parse(await fs.readFile(tsconfigPath, 'utf8'));
+          // Check if tsconfig has path mappings
+          if (tsconfig?.compilerOptions?.paths || tsconfig?.compilerOptions?.baseUrl) {
+            try {
+              require('tsconfig-paths/register');
+            } catch (tsconfigPathsError) {
+              console.warn('Path mappings detected in tsconfig.json but tsconfig-paths not found. Install tsconfig-paths for path alias support.');
+            }
+          }
+        }
+      } catch (tsconfigError) {
+      }
     } catch (_) {
       console.warn('ts-node not found. Install ts-node for TypeScript configs.');
     }

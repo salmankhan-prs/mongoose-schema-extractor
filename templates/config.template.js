@@ -6,9 +6,11 @@ module.exports = {
     // require('./src/models/User');
     // require('./src/models/Post');
     
-    // For TypeScript models, uncomment:
-    // require('ts-node/register');
+    // For TypeScript models with path aliases (@/*, etc.):
+    // Note: ts-node and tsconfig-paths are auto-detected and registered
+    // Just require your TypeScript model files directly:
     // require('./src/models/user.model.ts');
+    // require('./src/models/post.model.ts');
     
     return mongoose;
   },
