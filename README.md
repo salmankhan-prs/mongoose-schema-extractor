@@ -1,286 +1,203 @@
-# 🤖 Mongoose Schema Extractor
+# Mongoose Schema Extractor
 
 [![NPM version](https://img.shields.io/npm/v/mongoose-schema-extractor.svg)](https://www.npmjs.com/package/mongoose-schema-extractor)
 [![License](https://img.shields.io/npm/l/mongoose-schema-extractor.svg)](LICENSE)
 
-> **Extract Mongoose schemas into LLM-optimized formats. Built for programmatic AI agent development.**
+Extract Mongoose schemas and feed them directly to AI models. Built to solve the real problem of dynamically integrating database schemas with LLMs for natural language database interactions.
 
-## 🎯 **Primary Purpose: AI Agent Development**
+## Why This Exists
 
-This library was created specifically for **programmatic integration** with AI/LLM systems. Extract your Mongoose schemas and feed them as context to ChatGPT, Claude, or any AI model for intelligent database interactions.
+**The Problem**: You're building a MongoDB copilot, database chat bot, or any AI agent that needs to understand your database structure. You can't hardcode schemas manually—they change, you have multiple models, and you need this to work programmatically across different projects.
 
-**Core Use Case**: Building AI agents that understand your database structure.
+**The Solution**: This library extracts your existing Mongoose schemas and formats them perfectly for AI consumption. No manual schema documentation. No keeping things in sync. Just dynamic extraction that works with your actual models.
 
-## 💻 **Programmatic Usage** (Main API)
-
-```javascript
-const { extractSchemas } = require('mongoose-schema-extractor');
-const mongoose = require('mongoose');
-
-// Extract LLM-ready schema context
-const schemaContext = extractSchemas(mongoose, {
-  format: 'llm-compact'
-});
-
-// Use in AI prompts
-const aiPrompt = `
-Database Schema:
-${schemaContext}
-
-User Query: "Find all active users who posted this week"
-Generate MongoDB query:
-`;
-
-// Send to your AI service (OpenAI, Claude, etc.)
-const response = await openai.chat.completions.create({
-  messages: [{ role: 'user', content: aiPrompt }],
-  model: 'gpt-4'
-});
-```
-
----
-
-## 🚀 **Installation & Basic Setup**
+## Quick Start
 
 ```bash
 npm install mongoose-schema-extractor
 ```
 
 ```javascript
-// Load your models first
-require('./models/User');
-require('./models/Post');
-
-// Extract schemas
 const { extractSchemas } = require('mongoose-schema-extractor');
 const mongoose = require('mongoose');
 
-const schemas = extractSchemas(mongoose, { format: 'llm-compact' });
-console.log(schemas); // Ready for AI consumption
+// Load your existing models (you already have these)
+require('./models/User');
+require('./models/Post'); 
+
+// Extract schemas in AI-optimized format
+const schemaContext = extractSchemas(mongoose, { format: 'llm-compact' });
+
+// Now feed this to ChatGPT, Claude, or any LLM
+const prompt = `
+Database Schema:
+${schemaContext}
+
+Query: "Find all active users who posted this week"
+Generate MongoDB query:
+`;
 ```
 
-## 🧠 **The LLM-Compact Format**
+## Main Use Cases
 
-The `llm-compact` format produces AI-optimized schema descriptions:
+### 1. AI Database Copilot
+Build ChatGPT-like interfaces for your MongoDB database:
 
-```text
-**User**
-- username (String, required, unique, 3-30 chars)
-- email (String, required, unique, lowercase)
-- age (Number, min 13)
-- role (String, enum: [user, admin], default: user)
-- posts (Array of ObjectId, ref: Post)
-- createdAt (Date)
-
-**Post**
-- title (String, required, max 200 chars)
-- content (String, required)
-- author (ObjectId, ref: User, required)
-- tags (Array of String)
-- publishedAt (Date, default: null)
-```
-
-## 🔧 **API Reference**
-
-### `extractSchemas(input, options)`
-
-**Parameters:**
-- `input`: Mongoose instance, model, or models object
-- `options.format`: Output format (`'llm-compact'`, `'json'`, `'typescript'`, `'graphql'`)
-- `options.include`: Features to include (`['defaults', 'validators', 'timestamps', 'virtuals', 'indexes']`)
-- `options.exclude`: Features to exclude
-- `options.depth`: Max nesting depth (default: 10)
-
-**Returns:** Formatted schema string or object
-
-```javascript
-// Different input types
-extractSchemas(mongoose);                    // All models
-extractSchemas(UserModel);                   // Single model
-extractSchemas([UserModel, PostModel]);      // Array of models
-extractSchemas({ User: UserModel });         // Object of models
-```
-
-## 🛠️ **TypeScript Support**
-
-Full TypeScript support with automatic path alias resolution:
-
-```javascript
-// mongoose-extract.config.js
-module.exports = {
-  bootstrap: async () => {
-    const mongoose = require('mongoose');
-    
-    // TypeScript models with path aliases (@/*, etc.)
-    require('./src/models/user.model.ts');
-    require('./src/models/post.model.ts');
-    
-    return mongoose;
-  },
-  // ... rest of config
-};
-```
-
-**Auto-detection features:**
-- ✅ Automatically registers `ts-node` for TypeScript compilation
-- ✅ Detects `tsconfig.json` and registers `tsconfig-paths` for path mappings
-- ✅ Supports path aliases like `@/models/*`, `~/utils/*`, etc.
-- ✅ No manual setup required in most cases
-
-**Manual setup** (if auto-detection fails):
-```javascript
-// In your config bootstrap function
-require('ts-node/register');
-require('tsconfig-paths/register');  // For path aliases
-```
-
----
-
-## 🎆 **AI Agent Integration Examples**
-
-### Natural Language to MongoDB Query
 ```javascript
 class DatabaseAI {
   constructor() {
     this.schemaContext = extractSchemas(mongoose, { format: 'llm-compact' });
   }
-  
-  async queryFromNaturalLanguage(userRequest) {
-    const prompt = `
-Schema: ${this.schemaContext}
-Request: "${userRequest}"
-Generate MongoDB query:`;
-    
-    return await this.callAI(prompt);
+
+  async naturalLanguageQuery(userQuestion) {
+    const prompt = `Schema: ${this.schemaContext}\nQuestion: "${userQuestion}"\nMongoDB Query:`;
+    return await this.callOpenAI(prompt);
   }
 }
 
-// Usage
-const dbAI = new DatabaseAI();
-const query = await dbAI.queryFromNaturalLanguage(
-  "Find active users who posted this week"
-);
+// Usage: "Show me users who signed up last month"
+// AI generates: db.users.find({ createdAt: { $gte: new Date('2024-08-01') } })
 ```
 
-### Schema Analysis Assistant
-```javascript
-function createSchemaAnalyzer() {
-  const context = extractSchemas(mongoose, { format: 'llm-compact' });
-  
-  return {
-    analyzePerformance: () => {
-      return callAI(`${context}\n\nAnalyze performance bottlenecks and suggest indexes.`);
-    },
-    
-    suggestImprovements: () => {
-      return callAI(`${context}\n\nSuggest schema design improvements.`);
-    },
-    
-    generateTestData: (modelName) => {
-      return callAI(`${context}\n\nGenerate realistic test data for ${modelName}.`);
-    }
-  };
-}
-```
-
-### Different Output Formats
-```javascript
-// LLM-optimized (primary)
-const llmFormat = extractSchemas(mongoose, { format: 'llm-compact' });
-
-// Raw JSON for processing
-const jsonFormat = extractSchemas(mongoose, { format: 'json' });
-
-// TypeScript interfaces
-const tsFormat = extractSchemas(mongoose, { format: 'typescript' });
-
-// GraphQL schemas
-const gqlFormat = extractSchemas(mongoose, { format: 'graphql' });
-```
-
----
-
-## ⚡ **CLI Tool** (Convenience Feature)
-
-For quick schema extraction without writing code:
+### 2. CLI Tool for AI Chat Sessions
+Sometimes you just want to ask ChatGPT about your database:
 
 ```bash
-# Initialize config
 npx mongoose-extract init
-
-# Edit mongoose-extract.config.js to load your models
-# Then extract schemas
+# Edit config to point to your models
 npx mongoose-extract
+# Generates schema.llm-compact.txt - copy/paste into ChatGPT
 ```
 
-This generates files like `schema.llm-compact.txt` that you can copy into AI chats.
+## How It Works
 
----
+The library reads your actual Mongoose models (not your code files) and extracts:
+- Field types and constraints
+- Relationships between models  
+- Validation rules
+- Required fields
+- Default values
 
-## 🎆 **Real-World Integration Patterns**
+Then formats everything in a compact, AI-friendly format:
 
-### Natural Language Query Interface
+```
+**User**
+- username (String, required, unique, 3-30 chars)
+- email (String, required, unique, lowercase)
+- posts (Array of ObjectId, ref: Post)
+- createdAt (Date, auto-generated)
+
+**Post** 
+- title (String, required, max 200 chars)
+- content (String, required)
+- author (ObjectId, ref: User, required)
+- publishedAt (Date, default: null)
+```
+
+## API Reference
+
+### `extractSchemas(input, options)`
+
+**Parameters:**
+- `input` - Your mongoose instance, single model, or array of models
+- `options.format` - Output format:
+  - `'llm-compact'` - AI-optimized (primary use case)
+  - `'json'` - Raw JSON data
+  - `'typescript'` - Generate TypeScript interfaces
+  - `'graphql'` - Generate GraphQL schema
+
+**Examples:**
+```javascript
+// All registered models
+extractSchemas(mongoose)
+
+// Single model
+extractSchemas(UserModel)
+
+// Specific models
+extractSchemas([UserModel, PostModel])
+
+// With options
+extractSchemas(mongoose, {
+  format: 'llm-compact',
+  include: ['validators', 'defaults'],
+  exclude: ['timestamps']
+})
+```
+
+## TypeScript Support
+
+Works out of the box with TypeScript projects:
+
+```javascript
+// mongoose-extract.config.js
+module.exports = {
+  bootstrap: async () => {
+    // Your TS models are automatically detected and loaded
+    require('./src/models/user.model.ts');
+    require('./src/models/post.model.ts');
+    return mongoose;
+  }
+};
+```
+
+Auto-detects `tsconfig.json` and path aliases (`@/models/*`, etc.).
+
+## Real-World Integration
+
+### With OpenAI API
+```javascript
+const schemaContext = extractSchemas(mongoose, { format: 'llm-compact' });
+
+const response = await openai.chat.completions.create({
+  messages: [{
+    role: 'system', 
+    content: `Database schema: ${schemaContext}`
+  }, {
+    role: 'user',
+    content: 'Find all orders from last week'
+  }],
+  model: 'gpt-4'
+});
+```
+
+### With Langchain
 ```javascript
 const context = extractSchemas(mongoose, { format: 'llm-compact' });
-
-async function handleUserQuery(naturalLanguageQuery) {
-  const prompt = `${context}\n\nQuery: "${naturalLanguageQuery}"\nMongoDB:`;
-  const response = await openai.complete(prompt);
-  return response;
-}
+const chain = new ConversationChain({
+  llm: new ChatOpenAI(),
+  memory: new BufferMemory(),
+  prompt: PromptTemplate.fromTemplate(`
+    Schema: ${context}
+    Human: {input}
+    AI: I'll help you query this database.
+  `)
+});
 ```
 
-### Schema-Aware Chatbot
-```javascript
-class DatabaseChatbot {
-  constructor() {
-    this.context = extractSchemas(mongoose, { format: 'llm-compact' });
-  }
-  
-  async chat(userMessage) {
-    const systemPrompt = `You are a database expert. Here's the schema: ${this.context}`;
-    // Send to AI with system prompt + user message
-  }
-}
-```
+## Output Formats
 
-### Relationship Analysis
-```javascript
-const { extractRelationships } = require('mongoose-schema-extractor');
-const relationships = extractRelationships(mongoose);
-// Use for building graph visualizations or migration planning
-```
+While the primary use case is LLM integration, we also support:
 
-## 📊 **Bonus: Other Formats (Secondary Features)**
-
-We also support these formats for when you need them:
-- `json` - Clean JSON for tools and APIs
-- `typescript` - Type definitions for frontend
-- `graphql` - GraphQL schema generation
+- **JSON**: Clean data for processing
+- **TypeScript**: Generate interfaces for your frontend
+- **GraphQL**: Schema definitions
 
 ```javascript
-// Generate TypeScript types
+// Generate TypeScript types for your frontend
 const types = extractSchemas(mongoose, { format: 'typescript' });
-
-// Or get raw JSON for processing
-const json = extractSchemas(mongoose, { format: 'json' });
+fs.writeFileSync('types/database.d.ts', types);
 ```
-
-## 📁 **Examples**
-
-See [`examples/`](./examples) for:
-- **AI integration patterns** - Real-world usage examples
-- **ChatGPT prompts** - Ready-to-use conversation templates
-- **CLI usage guide** - Command-line examples
 
 ## Contributing
 
-Contributions welcome! Areas of focus:
-- AI integration improvements
+Found a bug? Want to add support for a new output format? PRs welcome.
+
+**Focus areas:**
+- Better AI prompt optimization
 - New output formats
-- Performance optimizations
-- Documentation and examples
+- Performance improvements
 
 ## License
 
-[MIT](LICENSE)
+MIT
