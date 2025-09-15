@@ -68,7 +68,11 @@ export function extractCompletePathInfo(schemaType: AnySchemaType, pathName: str
       }
       if ((schemaType as any).options?.minlength) info.minLength = (schemaType as any).options.minlength;
       if ((schemaType as any).options?.maxlength) info.maxLength = (schemaType as any).options.maxlength;
-      if ((schemaType as any).options?.match) info.pattern = String((schemaType as any).options.match);
+      if ((schemaType as any).options?.match) {
+        const match = (schemaType as any).options.match;
+        // Handle both regex and [regex, message] formats
+        info.pattern = Array.isArray(match) ? String(match[0]) : String(match);
+      }
       if ((schemaType as any).options?.lowercase) info.lowercase = true;
       if ((schemaType as any).options?.uppercase) info.uppercase = true;
       if ((schemaType as any).options?.trim) info.trim = true;

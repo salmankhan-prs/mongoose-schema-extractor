@@ -73,14 +73,23 @@ export async function loadConfig(): Promise<Config> {
             try {
               require('tsconfig-paths/register');
             } catch (tsconfigPathsError) {
-              console.warn('Path mappings detected in tsconfig.json but tsconfig-paths not found. Install tsconfig-paths for path alias support.');
+              console.error('❌ Path mappings detected but tsconfig-paths not found.');
+              console.error('   Install it to support path aliases (@/* imports):');
+              console.error('   npm install --save-dev tsconfig-paths');
+              console.error('   # or');
+              console.error('   yarn add --dev tsconfig-paths');
+              throw new Error('tsconfig-paths is required when using path mappings in tsconfig.json');
             }
           }
         }
       } catch (tsconfigError) {
       }
     } catch (_) {
-      console.warn('ts-node not found. Install ts-node for TypeScript configs.');
+      console.error('❌ ts-node not found. Install it to use TypeScript configs:');
+      console.error('   npm install --save-dev ts-node');
+      console.error('   # or');
+      console.error('   yarn add --dev ts-node');
+      throw new Error('ts-node is required for TypeScript config files');
     }
   }
 
