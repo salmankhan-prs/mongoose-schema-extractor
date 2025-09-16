@@ -127,21 +127,40 @@ extractSchemas(mongoose, {
 
 ## TypeScript Support
 
-Works out of the box with TypeScript projects:
+Works out of the box with TypeScript projects. The tool automatically detects TypeScript projects and registers the necessary loaders.
 
+**Requirements for TypeScript:**
+```bash
+# Install these dependencies in your project:
+npm install --save-dev ts-node tsconfig-paths
+# or
+yarn add --dev ts-node tsconfig-paths
+```
+
+**Usage:**
 ```javascript
 // mongoose-extract.config.js
 module.exports = {
   bootstrap: async () => {
-    // Your TS models are automatically detected and loaded
+    const mongoose = require('mongoose');
+    
+    // TypeScript models are automatically compiled and path aliases resolved
     require('./src/models/user.model.ts');
     require('./src/models/post.model.ts');
+    
+    // Path aliases from tsconfig.json work automatically:
+    // require('./src/models/user.model.ts'); // Uses @/models/* internally
+    
     return mongoose;
   }
 };
 ```
 
-Auto-detects `tsconfig.json` and path aliases (`@/models/*`, etc.).
+**What's auto-detected:**
+- ✅ TypeScript compilation via `ts-node`
+- ✅ Path aliases from `tsconfig.json` via `tsconfig-paths`
+- ✅ Automatic setup when `tsconfig.json` exists
+- ✅ Helpful error messages if dependencies are missing
 
 ## Real-World Integration
 
@@ -188,6 +207,37 @@ While the primary use case is LLM integration, we also support:
 const types = extractSchemas(mongoose, { format: 'typescript' });
 fs.writeFileSync('types/database.d.ts', types);
 ```
+
+## Troubleshooting
+
+### TypeScript Issues
+
+**Error: "ts-node not found"**
+```bash
+# Install ts-node in your project
+npm install --save-dev ts-node
+```
+
+**Error: "Cannot resolve module" or path alias issues**
+```bash
+# Install tsconfig-paths for path alias support
+npm install --save-dev tsconfig-paths
+```
+
+**Error: "Bootstrap function failed"**
+1. Check that all your model files exist and have valid syntax
+2. Ensure your `tsconfig.json` is properly configured
+3. Verify your models export the Mongoose models correctly
+
+### General Issues
+
+**Error: "No models found"**
+- Make sure your bootstrap function actually loads/requires your model files
+- Verify the models are registered with Mongoose before returning the mongoose instance
+
+**Generated schema looks incomplete**
+- Check that all your models are loaded in the bootstrap function
+- Ensure models are properly exported from their files
 
 ## Contributing
 

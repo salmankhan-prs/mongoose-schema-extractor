@@ -132,9 +132,9 @@ export function formatCompact(schemas: Record<string, any>) {
         }
       }
       
-      // Handle array of objects
+      // Handle array of embedded objects
       if (field.type === MONGOOSE_TYPES.ARRAY && field.items?.type === 'Object' && field.items.properties) {
-        lines.push(`  Array contains:`);
+        lines.push(`  Array contains objects with:`);
         for (const [nestedName, nestedInfo] of Object.entries<any>(field.items.properties)) {
           const nested = nestedInfo as any;
           let nestedLine = `    - ${nestedName} (${nested.type}`;
@@ -142,9 +142,16 @@ export function formatCompact(schemas: Record<string, any>) {
           const nestedConstraints: string[] = [];
           if (nested.required) nestedConstraints.push('required');
           if (nested.ref) nestedConstraints.push(`ref: ${nested.ref}`);
+          if (nested.enum) nestedConstraints.push(`enum: [${nested.enum.join(', ')}]`);
+          if (nested.maxLength) nestedConstraints.push(`max ${nested.maxLength} chars`);
+          if (nested.minLength) nestedConstraints.push(`min ${nested.minLength} chars`);
           
           if (nestedConstraints.length > 0) {
             nestedLine += `, ${nestedConstraints.join(', ')}`;
+          }
+          
+          if (nested.defaultValue !== undefined) {
+            nestedLine += `, default: ${JSON.stringify(nested.defaultValue)}`;
           }
           
           nestedLine += ')';

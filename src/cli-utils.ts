@@ -22,7 +22,7 @@ Error running bootstrap function. Make sure:
 1. All model files exist and are valid
 2. The bootstrap function returns a mongoose instance
 3. No syntax errors in your models
-4. For TypeScript with path aliases: Install tsconfig-paths and add require('tsconfig-paths/register')
+4. For TypeScript projects: Ensure ts-node and tsconfig-paths are installed if using path aliases
 `
 };
 
@@ -36,7 +36,78 @@ interface Config {
   options?: Pick<ExtractOptions, 'include' | 'exclude' | 'depth'>;
 }
 
+async function setupTypeScriptEnvironment() {
+  // Check if this is a TypeScript project
+  const tsconfigPath = path.resolve(process.cwd(), 'tsconfig.json');
+  const packageJsonPath = path.resolve(process.cwd(), 'package.json');
+  
+  let isTypeScriptProject = false;
+  let hasPathMappings = false;
+  
+  // Check for tsconfig.json
+  try {
+    const tsconfigExists = await fs.access(tsconfigPath).then(() => true).catch(() => false);
+    if (tsconfigExists) {
+      isTypeScriptProject = true;
+      const tsconfig = JSON.parse(await fs.readFile(tsconfigPath, 'utf8'));
+      hasPathMappings = !!(tsconfig?.compilerOptions?.paths || tsconfig?.compilerOptions?.baseUrl);
+    }
+  } catch (error) {
+    // Ignore tsconfig parsing errors
+  }
+  
+  // Also check package.json for TypeScript dependencies
+  if (!isTypeScriptProject) {
+    try {
+      const packageJsonExists = await fs.access(packageJsonPath).then(() => true).catch(() => false);
+      if (packageJsonExists) {
+        const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'));
+        const allDeps = {
+          ...packageJson.dependencies,
+          ...packageJson.devDependencies
+        };
+        if (allDeps.typescript || allDeps['ts-node'] || allDeps['@types/node']) {
+          isTypeScriptProject = true;
+        }
+      }
+    } catch (error) {
+      // Ignore package.json parsing errors
+    }
+  }
+  
+  if (isTypeScriptProject) {
+    // Setup ts-node for TypeScript compilation
+    try {
+      require('ts-node/register');
+    } catch (error) {
+      console.warn('⚠️  TypeScript project detected but ts-node not available.');
+      console.warn('   Install ts-node for TypeScript support:');
+      console.warn('   npm install --save-dev ts-node');
+      console.warn('   # or');
+      console.warn('   yarn add --dev ts-node');
+      // Don't throw error, let it continue and fail gracefully if needed
+    }
+    
+    // Setup tsconfig-paths for path alias resolution
+    if (hasPathMappings) {
+      try {
+        require('tsconfig-paths/register');
+      } catch (error) {
+        console.warn('⚠️  Path mappings detected in tsconfig.json but tsconfig-paths not available.');
+        console.warn('   Install tsconfig-paths for path alias support:');
+        console.warn('   npm install --save-dev tsconfig-paths');
+        console.warn('   # or');
+        console.warn('   yarn add --dev tsconfig-paths');
+        // Don't throw error, let it continue and fail gracefully if needed
+      }
+    }
+  }
+}
+
 export async function loadConfig(): Promise<Config> {
+  // Setup TypeScript environment early, before loading any config
+  await setupTypeScriptEnvironment();
+  
   const configPaths = [
     path.resolve(process.cwd(), 'mongoose-extract.config.js'),
     path.resolve(process.cwd(), 'mongoose-extract.config.ts'),
@@ -58,51 +129,21 @@ export async function loadConfig(): Promise<Config> {
   let config: any;
   const ext = path.extname(found);
 
-  if (ext === '.ts') {
-    // Support .ts via ts-node/register if available
-    try {
-      require('ts-node/register');
-      
-      try {
-        const tsconfigPath = path.resolve(process.cwd(), 'tsconfig.json');
-        const exists = await fs.access(tsconfigPath).then(() => true).catch(() => false);
-        if (exists) {
-          const tsconfig = JSON.parse(await fs.readFile(tsconfigPath, 'utf8'));
-          // Check if tsconfig has path mappings
-          if (tsconfig?.compilerOptions?.paths || tsconfig?.compilerOptions?.baseUrl) {
-            try {
-              require('tsconfig-paths/register');
-            } catch (tsconfigPathsError) {
-              console.error('❌ Path mappings detected but tsconfig-paths not found.');
-              console.error('   Install it to support path aliases (@/* imports):');
-              console.error('   npm install --save-dev tsconfig-paths');
-              console.error('   # or');
-              console.error('   yarn add --dev tsconfig-paths');
-              throw new Error('tsconfig-paths is required when using path mappings in tsconfig.json');
-            }
-          }
-        }
-      } catch (tsconfigError) {
-      }
-    } catch (_) {
-      console.error('❌ ts-node not found. Install it to use TypeScript configs:');
-      console.error('   npm install --save-dev ts-node');
-      console.error('   # or');
-      console.error('   yarn add --dev ts-node');
-      throw new Error('ts-node is required for TypeScript config files');
-    }
-  }
-
   try {
     if (ext === '.mjs') {
       const mod = await import(pathToFileURL(found).href);
       config = mod.default || mod;
     } else {
+      // At this point, TypeScript environment is already set up
       config = require(found);
       config = config.default || config;
     }
   } catch (e) {
-    throw new Error(ERRORS.INVALID_CONFIG + '\n' + (e as Error).message);
+    const error = e as Error;
+    if (error.message.includes('Cannot resolve module') || error.message.includes('path mapping')) {
+      throw new Error(`${ERRORS.INVALID_CONFIG}\n\nTypeScript path alias error: ${error.message}\n\nMake sure tsconfig-paths is installed and your tsconfig.json is properly configured.`);
+    }
+    throw new Error(ERRORS.INVALID_CONFIG + '\n' + error.message);
   }
 
   if (!config || typeof config !== 'object' || typeof config.bootstrap !== 'function' || !config.output || !Array.isArray(config.output.formats) || !config.output.path) {

@@ -118,17 +118,38 @@ export function extractCompletePathInfo(schemaType: AnySchemaType, pathName: str
       info.type = MONGOOSE_TYPES.MIXED;
       break;
 
-    case MONGOOSE_TYPES.ARRAY:
+    case MONGOOSE_TYPES.ARRAY: {
       info.type = MONGOOSE_TYPES.ARRAY;
+      // Handle different ways Mongoose exposes array item schemas
       const itemSchemaType = (schemaType as any).caster || (schemaType as any).$embeddedSchemaType;
       if (itemSchemaType) {
-        const itemInfo = extractCompletePathInfo(itemSchemaType, '', depth + 1, options, visited);
-        info.items = itemInfo;
-        if ((itemSchemaType as any).options?.ref) {
-          info.items.ref = (itemSchemaType as any).options.ref;
+        // Check if this is an embedded document array (has a schema with paths)
+        if ((itemSchemaType as any).schema && (itemSchemaType as any).schema.paths) {
+          // This is an embedded document array like comments: [{ user: ObjectId, body: String }]
+          const embeddedFields: Record<string, any> = {};
+          for (const [embeddedPath, embeddedType] of Object.entries((itemSchemaType as any).schema.paths)) {
+            if (embeddedPath === '_id' && !options.includeId) continue;
+            if (embeddedPath === '__v') continue;
+            embeddedFields[embeddedPath] = extractCompletePathInfo(embeddedType as any, embeddedPath, depth + 1, options, visited);
+          }
+          info.items = {
+            type: 'Object',
+            properties: embeddedFields,
+            propertyCount: Object.keys(embeddedFields).length
+          };
+        } else {
+          // Regular array item (String, Number, ObjectId, etc.)
+          const itemInfo = extractCompletePathInfo(itemSchemaType, '', depth + 1, options, visited);
+          info.items = itemInfo;
+          
+          // Propagate reference info for easy discovery
+          if ((itemSchemaType as any).options?.ref) {
+            info.items.ref = (itemSchemaType as any).options.ref;
+          }
         }
       }
       break;
+    }
 
     case MONGOOSE_TYPES.EMBEDDED:
     case MONGOOSE_TYPES.DOCUMENT:
