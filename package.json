@@ -29,7 +29,7 @@
     "url": "https://github.com/salmankhan-prs/mongoose-schema-extractor/issues"
   },
   "peerDependencies": {
-    "mongoose": ">=7.0.0"
+    "mongoose": ">=6.0.0"
   },
   "exports": {
     ".": {
